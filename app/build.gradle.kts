@@ -4,7 +4,7 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
-// Signing configuration
+// Signing configuration - supports both environment variables and local.properties
 val keystoreFile = System.getenv("KEYSTORE_FILE") ?: project.findProperty("KEYSTORE_FILE") as String?
 val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as String?
 val keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as String?
@@ -29,6 +29,7 @@ android {
 
     signingConfigs {
         create("release") {
+            // Only configure signing if all required values are present
             if (keystoreFile != null && keystorePassword != null && keyAlias != null && keyPassword != null) {
                 storeFile = file(keystoreFile)
                 storePassword = keystorePassword
@@ -46,6 +47,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Only use signing config if keystore is available
             if (keystoreFile != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
