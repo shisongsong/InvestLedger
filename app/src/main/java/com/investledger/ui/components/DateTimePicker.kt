@@ -1,5 +1,6 @@
 package com.investledger.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,11 +25,11 @@ fun DateTimePicker(
     
     OutlinedTextField(
         value = displayText,
-        onValueChange = {},
+        onValueChange = {}, // Read-only field
         readOnly = true,
         label = { Text(label) },
-        modifier = modifier.fillMaxWidth(),
-        onClick = { showDatePicker = true }
+        modifier = modifier.fillMaxWidth().clickable { showDatePicker = true },
+        enabled = true
     )
     
     if (showDatePicker) {
@@ -73,10 +74,14 @@ fun DateTimePicker(
     if (showTimePicker) {
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = timestamp
-        
+
+        // 尝试获取初始值，如果为 null 就提供默认值
+        val initialHour = remember { calendar.get(Calendar.HOUR_OF_DAY) }
+        val initialMinute = remember { calendar.get(Calendar.MINUTE) }
+
         val timePickerState = rememberTimePickerState(
-            initialHour = calendar.get(Calendar.HOUR_OF_DAY),
-            initialMinute = calendar.get(Calendar.MINUTE),
+            initialHour = initialHour,
+            initialMinute = initialMinute,
             is24Hour = true
         )
         
