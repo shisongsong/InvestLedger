@@ -5,13 +5,10 @@ plugins {
 }
 
 // Signing configuration - supports both environment variables and local.properties
-val keystoreFile: String? = System.getenv("KEYSTORE_FILE") ?: project.findProperty("KEYSTORE_FILE") as String?
+val keystoreFilePath: String? = System.getenv("KEYSTORE_FILE") ?: project.findProperty("KEYSTORE_FILE") as String?
 val keystorePassword: String? = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as String?
 val keyAlias: String? = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as String?
 val keyPassword: String? = System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as String?
-
-// Only use signing config when all values are present
-val useSigningConfig = keystoreFile != null && keystorePassword != null && keyAlias != null && keyPassword != null
 
 android {
     namespace = "com.investledger"
@@ -31,12 +28,14 @@ android {
     }
 
     signingConfigs {
-        if (useSigningConfig) {
+        // Create release signing config if all values are present
+        if (keystoreFilePath != null && keystorePassword != null && keyAlias != null && keyPassword != null) {
             create("release") {
-                storeFile = file(keystoreFile!!)
-                storePassword = keystorePassword!!
-                this.keyAlias = keyAlias!!
-                this.keyPassword = keyPassword!!
+                // Use File constructor to handle relative paths properly
+                storeFile = File(rootProject.projectDir, keystoreFilePath)
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
             }
         }
     }
@@ -49,7 +48,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            if (useSigningConfig) {
+            // Only use signing config if it was created
+            if (signingConfigs.findByName("release") != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
