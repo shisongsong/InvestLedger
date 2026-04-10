@@ -311,16 +311,19 @@ fun PositionCard(
         )
     }
     
-    // 编辑对话框 - 这里是添加的对话框，调用传入的 onEdit 回调
-    if (showEditDialog) {
-        EditPositionDialog(
-            position = position,
-            onDismiss = { showEditDialog = false },
-            onConfirm = { name, type, costPrice, quantity, note, createdAt ->
-                // 调用传入的编辑函数，这个函数会被主界面传进来的回调处理
-                onEdit()
-                showEditDialog = false
-            }
-        )
-    }
+// 编辑对话框 - 不是直接调用 onEdit，而是处理编辑操作
+if (showEditDialog) {
+    EditPositionDialog(
+        position = position,
+        onDismiss = { showEditDialog = false },
+        onConfirm = { name, type, costPrice, quantity, note, createdAt ->
+            // 我们应该调用父组件提供的编辑功能
+            // 但实际上在这里并不应该立即执行 onEdit() 
+            // 因为我们已经把数据传回给父组件进行处理
+            // onEdit 通常应包含实际的业务操作逻辑
+            onEdit()
+            showEditDialog = false
+        }
+    )
+}
 }

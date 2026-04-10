@@ -311,16 +311,16 @@ fun TransactionCard(
         )
     }
     
-    // 编辑对话框
-    if (showEditDialog) {
-        EditTransactionDialog(
-            transaction = transaction,
-            onDismiss = { showEditDialog = false },
-            onConfirm = { name, type, costPrice, sellPrice, quantity, createdAt ->
-                // 调用传入的编辑回调
-                onEdit()
-                showEditDialog = false
-            }
-        )
-    }
+// 编辑对话框
+if (showEditDialog) {
+    EditTransactionDialog(
+        transaction = transaction,
+        onDismiss = { showEditDialog = false },
+        onConfirm = { name, type, costPrice, sellPrice, quantity, createdAt ->
+            // 调用传入的编辑函数
+            onEdit()
+            showEditDialog = false
+        }
+    )
+}
 }
