@@ -6,13 +6,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.investledger.ui.components.DateTimePicker
 import com.investledger.ui.theme.*
 
 /**
- * 建仓对话框 - 支持两种计算方式
+ * 建仓对话框 - 支持两种计算方式和日期时间设置
  * 1. 按成本价+数量
  * 2. 按金额+数量（自动计算成本价）
  */
@@ -20,7 +22,7 @@ import com.investledger.ui.theme.*
 @Composable
 fun OpenPositionDialog(
     onDismiss: () -> Unit,
-    onConfirm: (name: String, type: String, costPrice: Double, quantity: Double, note: String) -> Unit
+    onConfirm: (name: String, type: String, costPrice: Double, quantity: Double, note: String, createdAt: Long) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("股票") }
@@ -37,6 +39,9 @@ fun OpenPositionDialog(
     // 模式2：金额和数量
     var totalAmount by remember { mutableStateOf("") }
     var quantityMode2 by remember { mutableStateOf("") }
+    
+    // 日期时间
+    var createdAt by remember { mutableStateOf(System.currentTimeMillis()) }
     
     val types = listOf("股票", "基金", "加密货币", "债券", "其他")
     
@@ -130,6 +135,13 @@ fun OpenPositionDialog(
                         }
                     }
                 }
+                
+                // 日期时间选择
+                DateTimePicker(
+                    timestamp = createdAt,
+                    onTimestampChange = { createdAt = it },
+                    label = "购买日期"
+                )
                 
                 // 输入模式选择
                 SingleChoiceSegmentedButtonRow(
@@ -305,7 +317,7 @@ fun OpenPositionDialog(
             TextButton(
                 onClick = {
                     if (name.isNotBlank() && finalCostPrice > 0 && finalQuantity > 0) {
-                        onConfirm(name, type, finalCostPrice, finalQuantity, note)
+                        onConfirm(name, type, finalCostPrice, finalQuantity, note, createdAt)
                     }
                 },
                 enabled = name.isNotBlank() && finalCostPrice > 0 && finalQuantity > 0

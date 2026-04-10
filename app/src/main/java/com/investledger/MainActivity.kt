@@ -15,6 +15,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import com.investledger.data.Position
+import com.investledger.data.Transaction
 import com.investledger.ui.screens.*
 import com.investledger.ui.theme.InvestLedgerTheme
 import com.investledger.viewmodel.InvestViewModel
@@ -52,6 +53,15 @@ fun InvestLedgerApp(viewModel: InvestViewModel) {
         Screen.Statistics
     )
     
+    // Dialog 状态
+    var showOpenDialog by remember { mutableStateOf(false) }
+    var showCloseDialog by remember { mutableStateOf(false) }
+    var showReduceDialog by remember { mutableStateOf(false) }
+    var showEditPositionDialog by remember { mutableStateOf(false) }
+    var showEditTransactionDialog by remember { mutableStateOf(false) }
+    var selectedPosition by remember { mutableStateOf<Position?>(null) }
+    var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
+    
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -88,11 +98,6 @@ fun InvestLedgerApp(viewModel: InvestViewModel) {
         ) {
             // 持仓页面
             composable(Screen.Positions.route) {
-                var showOpenDialog by remember { mutableStateOf(false) }
-                var showCloseDialog by remember { mutableStateOf(false) }
-                var showReduceDialog by remember { mutableStateOf(false) }
-                var selectedPosition by remember { mutableStateOf<Position?>(null) }
-                
                 PositionListScreen(
                     viewModel = viewModel,
                     onAddPosition = { showOpenDialog = true },
@@ -103,58 +108,23 @@ fun InvestLedgerApp(viewModel: InvestViewModel) {
                     onClosePosition = { position ->
                         selectedPosition = position
                         showCloseDialog = true
+                    },
+                    onEditPosition = { position ->
+                        selectedPosition = position
+                        showEditPositionDialog = true
                     }
                 )
-                
-                // 建仓对话框
-                if (showOpenDialog) {
-                    OpenPositionDialog(
-                        onDismiss = { showOpenDialog = false },
-                        onConfirm = { name, type, costPrice, quantity, note ->
-                            viewModel.openPosition(name, type, costPrice, quantity, note)
-                            showOpenDialog = false
-                        }
-                    )
-                }
-                
-                // 减仓对话框
-                val reducePos = selectedPosition
-                if (showReduceDialog && reducePos != null) {
-                    ReducePositionDialog(
-                        position = reducePos,
-                        onDismiss = { 
-                            showReduceDialog = false
-                            selectedPosition = null
-                        },
-                        onConfirm = { sellPrice, sellQuantity ->
-                            viewModel.reducePosition(reducePos.id, sellPrice, sellQuantity)
-                            showReduceDialog = false
-                            selectedPosition = null
-                        }
-                    )
-                }
-                
-                // 清仓对话框
-                val closePos = selectedPosition
-                if (showCloseDialog && closePos != null) {
-                    ClosePositionDialog(
-                        position = closePos,
-                        onDismiss = { 
-                            showCloseDialog = false
-                            selectedPosition = null
-                        },
-                        onConfirm = { sellPrice ->
-                            viewModel.closePosition(closePos.id, sellPrice)
-                            showCloseDialog = false
-                            selectedPosition = null
-                        }
-                    )
-                }
             }
             
             // 交易记录页面
             composable(Screen.Transactions.route) {
-                TransactionListScreen(viewModel = viewModel)
+                TransactionListScreen(
+                    viewModel = viewModel,
+                    onEditTransaction = { transaction ->
+                        selectedTransaction = transaction
+                        showEditTransactionDialog = true
+                    }
+                )
             }
             
             // 统计页面
@@ -162,6 +132,93 @@ fun InvestLedgerApp(viewModel: InvestViewModel) {
                 StatisticsScreen(viewModel = viewModel)
             }
         }
+    }
+    
+    // 建仓对话框
+    if (showOpenDialog) {
+        OpenPositionDialog(
+            onDismiss = { showOpenDialog = false },
+            onConfirm = { name, type, costPrice, quantity, note, createdAt ->
+                viewModel.openPosition(name, type, costPrice, quantity, note, createdAt)
+                showOpenDialog = false
+            }
+        )
+    }
+    
+    // 减仓对话框
+    val reducePos = selectedPosition
+    if (showReduceDialog && reducePos != null) {
+        ReducePositionDialog(
+            position = reducePos,
+            onDismiss = { 
+                showReduceDialog = false
+                selectedPosition = null
+            },
+            onConfirm = { sellPrice, sellQuantity ->
+                viewModel.reducePosition(reducePos.id, sellPrice, sellQuantity)
+                showReduceDialog = false
+                selectedPosition = null
+            }
+        )
+    }
+    
+    // 清仓对话框
+    val closePos = selectedPosition
+    if (showCloseDialog && closePos != null) {
+        ClosePositionDialog(
+            position = closePos,
+            onDismiss = { 
+                showCloseDialog = false
+                selectedPosition = null
+            },
+            onConfirm = { sellPrice ->
+                viewModel.closePosition(closePos.id, sellPrice)
+                showCloseDialog = false
+                selectedPosition = null
+            }
+        )
+    }
+    
+    // 编辑持仓对话框
+    val editPosition = selectedPosition
+    if (showEditPositionDialog && editPosition != null) {
+        EditPositionDialog(
+            position = editPosition,
+            onDismiss = { 
+                showEditPositionDialog = false
+                selectedPosition = null
+            },
+            onConfirm = { name, type, costPrice, quantity, note, createdAt ->
+                viewModel.editPosition(editPosition.id, name, type, costPrice, quantity, note, createdAt)
+                showEditPositionDialog = false
+                selectedPosition = null
+            }
+        )
+    }
+    
+    // 编辑交易记录对话框
+    val editTransaction = selectedTransaction
+    if (showEditTransactionDialog && editTransaction != null) {
+        EditTransactionDialog(
+            transaction = editTransaction,
+            onDismiss = { 
+                showEditTransactionDialog = false
+                selectedTransaction = null
+            },
+            onConfirm = { name, type, costPrice, sellPrice, quantity, createdAt ->
+                viewModel.editTransaction(
+                    transactionId = editTransaction.id,
+                    name = name,
+                    type = type,
+                    costPrice = costPrice,
+                    sellPrice = sellPrice,
+                    quantity = quantity,
+                    createdAt = createdAt
+                )
+                showEditTransactionDialog = false
+                selectedTransaction = null
+            }
+        )
     }
 }
 

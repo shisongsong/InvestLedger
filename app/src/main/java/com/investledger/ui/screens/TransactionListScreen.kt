@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.dp
 import com.investledger.data.Transaction
 import com.investledger.ui.theme.*
 import com.investledger.viewmodel.InvestViewModel
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 /**
  * 交易记录屏幕
@@ -21,7 +23,8 @@ import com.investledger.viewmodel.InvestViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionListScreen(
-    viewModel: InvestViewModel
+    viewModel: InvestViewModel,
+    onEditTransaction: (Transaction) -> Unit
 ) {
     val transactions by viewModel.transactions.collectAsState()
     val totalProfit by viewModel.totalProfit.collectAsState()
@@ -90,7 +93,7 @@ fun TransactionListScreen(
             if (transactions.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.CENTER
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -127,6 +130,7 @@ fun TransactionListScreen(
                     ) { transaction ->
                         TransactionCard(
                             transaction = transaction,
+                            onEdit = { onEditTransaction(transaction) },
                             onDelete = { viewModel.deleteTransaction(transaction) }
                         )
                     }
@@ -142,9 +146,11 @@ fun TransactionListScreen(
 @Composable
 fun TransactionCard(
     transaction: Transaction,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -169,18 +175,27 @@ fun TransactionCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        transaction.type,
+                        "${transaction.type} | ${SimpleDateFormat("MM/dd", Locale.getDefault()).format(java.util.Date(transaction.createdAt))}",
                         style = MaterialTheme.typography.labelSmall,
                         color = GrayText
                     )
                 }
                 
-                IconButton(onClick = { showDeleteDialog = true }) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "删除",
-                        tint = GrayLight
-                    )
+                Row {
+                    IconButton(onClick = { showEditDialog = true }) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "编辑",
+                            tint = GrayLight
+                        )
+                    }
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "删除",
+                            tint = GrayLight
+                        )
+                    }
                 }
             }
             

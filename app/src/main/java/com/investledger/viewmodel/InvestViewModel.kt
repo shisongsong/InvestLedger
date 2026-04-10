@@ -57,7 +57,8 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
         type: String,
         costPrice: Double,
         quantity: Double,
-        note: String = ""
+        note: String = "",
+        createdAt: Long = System.currentTimeMillis()
     ) {
         viewModelScope.launch {
             val position = Position(
@@ -65,6 +66,7 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
                 type = type,
                 costPrice = costPrice,
                 quantity = quantity,
+                createdAt = createdAt,
                 note = note
             )
             positionDao.insertPosition(position)
@@ -106,6 +108,61 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
                     val updatedPosition = position.copy(quantity = newQuantity)
                     positionDao.updatePosition(updatedPosition)
                 }
+            }
+        }
+    }
+    
+    /**
+     * 编辑持仓
+     */
+    fun editPosition(positionId: Long, name: String, type: String, costPrice: Double, quantity: Double, note: String, createdAt: Long) {
+        viewModelScope.launch {
+            val position = positionDao.getPositionById(positionId)
+            if (position != null) {
+                val updatedPosition = position.copy(
+                    name = name,
+                    type = type,
+                    costPrice = costPrice,
+                    quantity = quantity,
+                    note = note,
+                    createdAt = createdAt
+                )
+                positionDao.updatePosition(updatedPosition)
+            }
+        }
+    }
+    
+    /**
+     * 编辑交易记录
+     */
+    fun editTransaction(
+        transactionId: Long,
+        name: String,
+        type: String,
+        costPrice: Double,
+        sellPrice: Double,
+        quantity: Double,
+        createdAt: Long = System.currentTimeMillis()
+    ) {
+        viewModelScope.launch {
+            val transaction = transactionDao.getTransactionById(transactionId)
+            if (transaction != null) {
+                val profit = (sellPrice - costPrice) * quantity
+                val profitRate = if (costPrice != 0.0) {
+                    ((sellPrice - costPrice) / costPrice) * 100
+                } else 0.0
+                
+                val updatedTransaction = transaction.copy(
+                    name = name,
+                    type = type,
+                    costPrice = costPrice,
+                    sellPrice = sellPrice,
+                    quantity = quantity,
+                    profit = profit,
+                    profitRate = profitRate,
+                    createdAt = createdAt
+                )
+                transactionDao.updateTransaction(updatedTransaction)
             }
         }
     }

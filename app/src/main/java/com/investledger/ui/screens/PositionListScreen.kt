@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.dp
 import com.investledger.data.Position
 import com.investledger.ui.theme.*
 import com.investledger.viewmodel.InvestViewModel
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 /**
  * 持仓列表屏幕
@@ -24,7 +26,8 @@ fun PositionListScreen(
     viewModel: InvestViewModel,
     onAddPosition: () -> Unit,
     onReducePosition: (Position) -> Unit,
-    onClosePosition: (Position) -> Unit
+    onClosePosition: (Position) -> Unit,
+    onEditPosition: (Position) -> Unit
 ) {
     val positions by viewModel.positions.collectAsState()
     val totalCost by viewModel.totalCost.collectAsState()
@@ -139,6 +142,7 @@ fun PositionListScreen(
                     ) { position ->
                         PositionCard(
                             position = position,
+                            onEdit = { onEditPosition(position) },
                             onReduce = { onReducePosition(position) },
                             onClose = { onClosePosition(position) },
                             onDelete = { viewModel.deletePosition(position) }
@@ -156,11 +160,13 @@ fun PositionListScreen(
 @Composable
 fun PositionCard(
     position: Position,
+    onEdit: () -> Unit,
     onReduce: () -> Unit,
     onClose: () -> Unit,
     onDelete: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -183,16 +189,16 @@ fun PositionCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        position.type,
+                        "${position.type} | ${SimpleDateFormat("MM/dd", Locale.getDefault()).format(java.util.Date(position.createdAt))}",
                         style = MaterialTheme.typography.labelSmall,
                         color = GrayText
                     )
                 }
                 
-                IconButton(onClick = { showDeleteDialog = true }) {
+                IconButton(onClick = { showEditDialog = true }) {
                     Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "删除",
+                        Icons.Default.Edit,
+                        contentDescription = "编辑",
                         tint = GrayLight
                     )
                 }

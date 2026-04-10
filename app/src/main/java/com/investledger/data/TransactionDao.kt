@@ -34,6 +34,12 @@ interface TransactionDao {
     suspend fun deleteTransaction(transaction: Transaction)
     
     /**
+     * 更新交易记录
+     */
+    @Update
+    suspend fun updateTransaction(transaction: Transaction)
+    
+    /**
      * 获取交易次数
      */
     @Query("SELECT COUNT(*) FROM transactions")
