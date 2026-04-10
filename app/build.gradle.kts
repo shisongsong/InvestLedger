@@ -4,18 +4,18 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
-// Signing configuration - supports both environment variables and local.properties
-val keystoreFilePath: String? = System.getenv("KEYSTORE_FILE")
-val keystorePassword: String? = System.getenv("KEYSTORE_PASSWORD")
-val keyAlias: String? = System.getenv("KEY_ALIAS")
-val keyPassword: String? = System.getenv("KEY_PASSWORD")
+// Signing configuration - use different variable names to avoid DSL conflicts
+val keystoreFile: String? = System.getenv("KEYSTORE_FILE")
+val keystorePass: String? = System.getenv("KEYSTORE_PASSWORD")
+val keyAliasValue: String? = System.getenv("KEY_ALIAS")
+val keyPass: String? = System.getenv("KEY_PASSWORD")
 
 // Debug logging
 println("=== Signing Config Debug ===")
-println("KEYSTORE_FILE: $keystoreFilePath")
-println("KEYSTORE_PASSWORD: ${if (keystorePassword != null) "SET" else "NULL"}")
-println("KEY_ALIAS: $keyAlias")
-println("KEY_PASSWORD: ${if (keyPassword != null) "SET" else "NULL"}")
+println("KEYSTORE_FILE: $keystoreFile")
+println("KEYSTORE_PASSWORD: ${if (keystorePass != null) "SET" else "NULL"}")
+println("KEY_ALIAS: $keyAliasValue")
+println("KEY_PASSWORD: ${if (keyPass != null) "SET" else "NULL"}")
 println("============================")
 
 android {
@@ -36,12 +36,12 @@ android {
     }
 
     signingConfigs {
-        if (keystoreFilePath != null && keystorePassword != null && keyAlias != null && keyPassword != null) {
+        if (keystoreFile != null && keystorePass != null && keyAliasValue != null && keyPass != null) {
             create("release") {
-                storeFile = File(rootProject.projectDir, keystoreFilePath)
-                storePassword = keystorePassword
-                this.keyAlias = keyAlias
-                this.keyPassword = keyPassword
+                storeFile = File(rootProject.projectDir, keystoreFile)
+                storePassword = keystorePass
+                keyAlias = keyAliasValue
+                keyPassword = keyPass
             }
             println("Signing config 'release' created successfully")
         } else {
