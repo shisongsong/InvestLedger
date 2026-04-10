@@ -1,0 +1,64 @@
+name: Setup Signing Keys
+
+on:
+  workflow_dispatch:
+    inputs:
+      keystore_password:
+        description: 'Password for keystore (use a strong password)'
+        required: true
+        type: string
+      key_alias:
+        description: 'Key alias name'
+        required: true
+        default: 'investledger'
+        type: string
+      key_password:
+        description: 'Password for key (can be same as keystore password)'
+        required: true
+        type: string
+
+jobs:
+  generate-keystore:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Generate keystore
+        run: |
+          keytool -genkeypair \
+            -alias "${{ inputs.key_alias }}" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -keystore investledger.keystore \
+            -storepass "${{ inputs.keystore_password }}" \
+            -keypass "${{ inputs.key_password }}" \
+            -dname "CN=InvestLedger, OU=Development, O=InvestLedger Team, L=Beijing, ST=Beijing, C=CN"
+          
+          # Base64 encode the keystore
+          KEYSTORE_BASE64=$(base64 -i investledger.keystore | tr -d '\n')
+          
+          echo "===== KEYSTORE GENERATED SUCCESSFULLY ====="
+          echo ""
+          echo "Copy the following values to your GitHub Repository Secrets:"
+          echo ""
+          echo "KEYSTORE_BASE64 (this will be a long string):"
+          echo "${KEYSTORE_BASE64}"
+          echo ""
+          echo "KEYSTORE_PASSWORD:"
+          echo "${{ inputs.keystore_password }}"
+          echo ""
+          echo "KEY_ALIAS:"
+          echo "${{ inputs.key_alias }}"
+          echo ""
+          echo "KEY_PASSWORD:"
+          echo "${{ inputs.key_password }}"
+          echo ""
+          echo "===== GO TO: Settings > Secrets and variables > Actions > New repository secret ====="
+          echo "Create these 4 secrets: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
+        
+      - name: Upload keystore artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: keystore
+          path: investledger.keystore
+          retention-days: 1

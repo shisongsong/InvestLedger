@@ -4,6 +4,12 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// Signing configuration
+val keystoreFile = System.getenv("KEYSTORE_FILE") ?: project.findProperty("KEYSTORE_FILE") as String?
+val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as String?
+val keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as String?
+val keyPassword = System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as String?
+
 android {
     namespace = "com.investledger"
     compileSdk = 34
@@ -21,6 +27,17 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            if (keystoreFile != null && keystorePassword != null && keyAlias != null && keyPassword != null) {
+                storeFile = file(keystoreFile)
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -29,6 +46,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (keystoreFile != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     
