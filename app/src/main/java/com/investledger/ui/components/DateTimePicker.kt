@@ -23,14 +23,26 @@ fun DateTimePicker(
     val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
     val displayText = remember(timestamp) { dateFormat.format(Date(timestamp)) }
     
-    OutlinedTextField(
-        value = displayText,
-        onValueChange = {}, // Read-only field
-        readOnly = true,
-        label = { Text(label) },
-        modifier = modifier.fillMaxWidth().clickable { showDatePicker = true },
-        enabled = true
-    )
+    // 使用辅助容器来响应点击
+    Box(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = displayText,
+            onValueChange = {}, // Read-only field
+            readOnly = true,
+            label = { Text(label) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = true
+        )
+        
+        // 使用 Box 区域接收点击事件
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { showDatePicker = true }
+        )
+    }
     
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -75,13 +87,9 @@ fun DateTimePicker(
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = timestamp
 
-        // 尝试获取初始值，如果为 null 就提供默认值
-        val initialHour = remember { calendar.get(Calendar.HOUR_OF_DAY) }
-        val initialMinute = remember { calendar.get(Calendar.MINUTE) }
-
         val timePickerState = rememberTimePickerState(
-            initialHour = initialHour,
-            initialMinute = initialMinute,
+            initialHour = calendar.get(Calendar.HOUR_OF_DAY),
+            initialMinute = calendar.get(Calendar.MINUTE),
             is24Hour = true
         )
         
