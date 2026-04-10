@@ -24,16 +24,21 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         
+      - name: Generate Gradle Wrapper
+        run: |
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
+            mkdir -p gradle/wrapper
+            # Download the gradle-wrapper.jar from Gradle releases
+            curl -fsSL -o gradle-wrapper.jar \
+              "https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar"
+            mv gradle-wrapper.jar gradle/wrapper/gradle-wrapper.jar
+          fi
+        
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
         
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-home-cache-cleanup: true
-          
       - name: Build Release APK
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --no-daemon
         
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
