@@ -10,7 +10,7 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [Position::class, Transaction::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

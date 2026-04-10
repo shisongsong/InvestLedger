@@ -48,6 +48,6 @@ interface PositionDao {
     /**
      * 获取总成本
      */
-    @Query("SELECT SUM(costPrice * quantity) FROM positions")
-    fun getTotalCost(): Flow<Double?>
+    @Query("SELECT COALESCE(SUM(costPrice * quantity), 0.0) FROM positions")
+    fun getTotalCost(): Flow<Double>
 }

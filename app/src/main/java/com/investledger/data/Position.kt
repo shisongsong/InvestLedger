@@ -12,16 +12,16 @@ data class Position(
     val id: Long = 0,
     
     /** 投资名称/代码 */
-    val name: String,
+    val name: String = "",
     
     /** 投资类型：股票、基金、加密货币等 */
-    val type: String,
+    val type: String = "",
     
     /** 成本价 */
-    val costPrice: Double,
+    val costPrice: Double = 0.0,
     
     /** 持有数量 */
-    val quantity: Double,
+    val quantity: Double = 0.0,
     
     /** 创建时间 */
     val createdAt: Long = System.currentTimeMillis(),
@@ -33,7 +33,7 @@ data class Position(
      * 计算总成本
      */
     val totalCost: Double
-        get() = costPrice * quantity
+        get() = if (costPrice != 0.0 && quantity != 0.0) costPrice * quantity else 0.0
     
     /**
      * 格式化显示

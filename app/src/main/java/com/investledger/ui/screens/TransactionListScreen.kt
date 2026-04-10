@@ -121,7 +121,10 @@ fun TransactionListScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(transactions) { transaction ->
+                    items(
+                        items = transactions,
+                        key = { it.id }
+                    ) { transaction ->
                         TransactionCard(
                             transaction = transaction,
                             onDelete = { viewModel.deleteTransaction(transaction) }

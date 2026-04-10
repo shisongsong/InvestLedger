@@ -4,13 +4,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.investledger.ui.theme.*
 
 /**
- * 建仓对话框
+ * 建仓对话框 - 支持两种计算方式
+ * 1. 按成本价+数量
+ * 2. 按金额+数量（自动计算成本价）
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,12 +24,52 @@ fun OpenPositionDialog(
 ) {
     var name by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("股票") }
-    var costPrice by remember { mutableStateOf("") }
-    var quantity by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     
+    // 输入模式：0=成本价+数量, 1=金额+数量
+    var inputMode by remember { mutableStateOf(0) }
+    
+    // 模式1：成本价和数量
+    var costPrice by remember { mutableStateOf("") }
+    var quantityMode1 by remember { mutableStateOf("") }
+    
+    // 模式2：金额和数量
+    var totalAmount by remember { mutableStateOf("") }
+    var quantityMode2 by remember { mutableStateOf("") }
+    
     val types = listOf("股票", "基金", "加密货币", "债券", "其他")
+    
+    // 计算实时总额显示
+    val displayTotal = when (inputMode) {
+        0 -> {
+            val cost = costPrice.toDoubleOrNull() ?: 0.0
+            val qty = quantityMode1.toDoubleOrNull() ?: 0.0
+            if (cost > 0 && qty > 0) cost * qty else 0.0
+        }
+        1 -> {
+            totalAmount.toDoubleOrNull() ?: 0.0
+        }
+        else -> 0.0
+    }
+    
+    // 计算实际成本价（用于保存）
+    val finalCostPrice = when (inputMode) {
+        0 -> costPrice.toDoubleOrNull() ?: 0.0
+        1 -> {
+            val amount = totalAmount.toDoubleOrNull() ?: 0.0
+            val qty = quantityMode2.toDoubleOrNull() ?: 0.0
+            if (qty > 0) amount / qty else 0.0
+        }
+        else -> 0.0
+    }
+    
+    // 计算实际数量
+    val finalQuantity = when (inputMode) {
+        0 -> quantityMode1.toDoubleOrNull() ?: 0.0
+        1 -> quantityMode2.toDoubleOrNull() ?: 0.0
+        else -> 0.0
+    }
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -38,7 +82,7 @@ fun OpenPositionDialog(
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // 名称输入
                 OutlinedTextField(
@@ -87,41 +131,162 @@ fun OpenPositionDialog(
                     }
                 }
                 
-                // 成本价输入
-                OutlinedTextField(
-                    value = costPrice,
-                    onValueChange = { 
-                        if (it.isEmpty() || it.matches(Regex("\\d+\\.?\\d*"))) {
-                            costPrice = it
-                        }
-                    },
-                    label = { Text("成本价") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = GreenPrimary,
-                        unfocusedBorderColor = GrayBorder
-                    )
-                )
+                // 输入模式选择
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    SegmentedButton(
+                        selected = inputMode == 0,
+                        onClick = { inputMode = 0 },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                    ) {
+                        Text("成本价+数量")
+                    }
+                    SegmentedButton(
+                        selected = inputMode == 1,
+                        onClick = { inputMode = 1 },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                    ) {
+                        Text("金额+数量")
+                    }
+                }
                 
-                // 数量输入
-                OutlinedTextField(
-                    value = quantity,
-                    onValueChange = { 
-                        if (it.isEmpty() || it.matches(Regex("\\d+\\.?\\d*"))) {
-                            quantity = it
+                // 根据模式显示不同的输入
+                when (inputMode) {
+                    0 -> {
+                        // 模式1：成本价 + 数量
+                        OutlinedTextField(
+                            value = costPrice,
+                            onValueChange = { 
+                                if (it.isEmpty() || it.matches(Regex("\\d*\\.?\\d*"))) {
+                                    costPrice = it
+                                }
+                            },
+                            label = { Text("成本价") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = GreenPrimary,
+                                unfocusedBorderColor = GrayBorder
+                            )
+                        )
+                        
+                        OutlinedTextField(
+                            value = quantityMode1,
+                            onValueChange = { 
+                                if (it.isEmpty() || it.matches(Regex("\\d*\\.?\\d*"))) {
+                                    quantityMode1 = it
+                                }
+                            },
+                            label = { Text("数量") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = GreenPrimary,
+                                unfocusedBorderColor = GrayBorder
+                            )
+                        )
+                    }
+                    1 -> {
+                        // 模式2：金额 + 数量
+                        OutlinedTextField(
+                            value = totalAmount,
+                            onValueChange = { 
+                                if (it.isEmpty() || it.matches(Regex("\\d*\\.?\\d*"))) {
+                                    totalAmount = it
+                                }
+                            },
+                            label = { Text("金额") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = GreenPrimary,
+                                unfocusedBorderColor = GrayBorder
+                            )
+                        )
+                        
+                        OutlinedTextField(
+                            value = quantityMode2,
+                            onValueChange = { 
+                                if (it.isEmpty() || it.matches(Regex("\\d*\\.?\\d*"))) {
+                                    quantityMode2 = it
+                                }
+                            },
+                            label = { Text("数量") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = GreenPrimary,
+                                unfocusedBorderColor = GrayBorder
+                            )
+                        )
+                        
+                        // 显示自动计算的成本价
+                        if (finalCostPrice > 0) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = GreenLight
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "自动计算成本价",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = GrayText
+                                    )
+                                    Text(
+                                        String.format("%.4f", finalCostPrice),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = GreenPrimary
+                                    )
+                                }
+                            }
                         }
-                    },
-                    label = { Text("数量") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = GreenPrimary,
-                        unfocusedBorderColor = GrayBorder
-                    )
-                )
+                    }
+                }
+                
+                // 实时显示总金额
+                if (displayTotal > 0) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                "总金额",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                String.format("%.2f", displayTotal),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
                 
                 // 备注（可选）
                 OutlinedTextField(
@@ -139,13 +304,11 @@ fun OpenPositionDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val cost = costPrice.toDoubleOrNull() ?: 0.0
-                    val qty = quantity.toDoubleOrNull() ?: 0.0
-                    if (name.isNotBlank() && cost > 0 && qty > 0) {
-                        onConfirm(name, type, cost, qty, note)
+                    if (name.isNotBlank() && finalCostPrice > 0 && finalQuantity > 0) {
+                        onConfirm(name, type, finalCostPrice, finalQuantity, note)
                     }
                 },
-                enabled = name.isNotBlank() && costPrice.isNotBlank() && quantity.isNotBlank()
+                enabled = name.isNotBlank() && finalCostPrice > 0 && finalQuantity > 0
             ) {
                 Text("确定", color = GreenPrimary)
             }

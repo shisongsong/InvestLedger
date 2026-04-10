@@ -90,11 +90,16 @@ fun InvestLedgerApp(viewModel: InvestViewModel) {
             composable(Screen.Positions.route) {
                 var showOpenDialog by remember { mutableStateOf(false) }
                 var showCloseDialog by remember { mutableStateOf(false) }
+                var showReduceDialog by remember { mutableStateOf(false) }
                 var selectedPosition by remember { mutableStateOf<Position?>(null) }
                 
                 PositionListScreen(
                     viewModel = viewModel,
                     onAddPosition = { showOpenDialog = true },
+                    onReducePosition = { position ->
+                        selectedPosition = position
+                        showReduceDialog = true
+                    },
                     onClosePosition = { position ->
                         selectedPosition = position
                         showCloseDialog = true
@@ -112,16 +117,34 @@ fun InvestLedgerApp(viewModel: InvestViewModel) {
                     )
                 }
                 
+                // 减仓对话框
+                val reducePos = selectedPosition
+                if (showReduceDialog && reducePos != null) {
+                    ReducePositionDialog(
+                        position = reducePos,
+                        onDismiss = { 
+                            showReduceDialog = false
+                            selectedPosition = null
+                        },
+                        onConfirm = { sellPrice, sellQuantity ->
+                            viewModel.reducePosition(reducePos.id, sellPrice, sellQuantity)
+                            showReduceDialog = false
+                            selectedPosition = null
+                        }
+                    )
+                }
+                
                 // 清仓对话框
-                if (showCloseDialog && selectedPosition != null) {
+                val closePos = selectedPosition
+                if (showCloseDialog && closePos != null) {
                     ClosePositionDialog(
-                        position = selectedPosition!!,
+                        position = closePos,
                         onDismiss = { 
                             showCloseDialog = false
                             selectedPosition = null
                         },
                         onConfirm = { sellPrice ->
-                            viewModel.closePosition(selectedPosition!!.id, sellPrice)
+                            viewModel.closePosition(closePos.id, sellPrice)
                             showCloseDialog = false
                             selectedPosition = null
                         }

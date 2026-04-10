@@ -13,21 +13,22 @@ import com.investledger.data.Position
 import com.investledger.ui.theme.*
 
 /**
- * 清仓对话框 - 支持两种卖出计算方式
- * 1. 按卖出价
- * 2. 按卖出金额（自动计算卖出价）
+ * 减仓对话框 - 支持两种卖出计算方式
+ * 1. 按卖出价+卖出数量
+ * 2. 按卖出金额+卖出数量（自动计算卖出价）
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ClosePositionDialog(
+fun ReducePositionDialog(
     position: Position,
     onDismiss: () -> Unit,
-    onConfirm: (sellPrice: Double) -> Unit
+    onConfirm: (sellPrice: Double, sellQuantity: Double) -> Unit
 ) {
-    // 输入模式：0=卖出价, 1=卖出金额
+    // 输入模式：0=卖出价+数量, 1=卖出金额+数量
     var inputMode by remember { mutableStateOf(0) }
     
     var sellPrice by remember { mutableStateOf("") }
+    var sellQuantity by remember { mutableStateOf("") }
     var sellAmount by remember { mutableStateOf("") }
     
     // 计算最终卖出价
@@ -35,14 +36,18 @@ fun ClosePositionDialog(
         0 -> sellPrice.toDoubleOrNull() ?: 0.0
         1 -> {
             val amount = sellAmount.toDoubleOrNull() ?: 0.0
-            if (position.quantity > 0) amount / position.quantity else 0.0
+            val qty = sellQuantity.toDoubleOrNull() ?: 0.0
+            if (qty > 0) amount / qty else 0.0
         }
         else -> 0.0
     }
     
+    // 计算最终卖出数量
+    val finalSellQuantity = sellQuantity.toDoubleOrNull() ?: 0.0
+    
     // 计算收益
-    val profit = if (finalSellPrice > 0) {
-        (finalSellPrice - position.costPrice) * position.quantity
+    val profit = if (finalSellPrice > 0 && finalSellQuantity > 0) {
+        (finalSellPrice - position.costPrice) * finalSellQuantity
     } else 0.0
     
     val profitRate = if (finalSellPrice > 0 && position.costPrice != 0.0) {
@@ -50,15 +55,19 @@ fun ClosePositionDialog(
     } else 0.0
     
     // 计算卖出总金额
-    val totalSellAmount = if (finalSellPrice > 0) {
-        finalSellPrice * position.quantity
+    val totalSellAmount = if (finalSellPrice > 0 && finalSellQuantity > 0) {
+        finalSellPrice * finalSellQuantity
     } else 0.0
+    
+    // 检查是否超过持仓数量
+    val isOverQuantity = finalSellQuantity > position.quantity
+    val remainingQuantity = position.quantity - finalSellQuantity
     
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { 
             Text(
-                "清仓",
+                "减仓",
                 style = MaterialTheme.typography.headlineSmall
             )
         },
@@ -83,13 +92,7 @@ fun ClosePositionDialog(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "${position.type} | 成本价 ${position.formatPrice()} | 数量 ${position.formatQuantity()}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = GrayText
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "总成本: ${String.format("%.2f", position.totalCost)}",
+                            "${position.type} | 成本价 ${position.formatPrice()} | 持仓 ${position.formatQuantity()}",
                             style = MaterialTheme.typography.bodySmall,
                             color = GrayText
                         )
@@ -115,6 +118,32 @@ fun ClosePositionDialog(
                         Text("卖出金额")
                     }
                 }
+                
+                // 卖出数量（两种模式都需要）
+                OutlinedTextField(
+                    value = sellQuantity,
+                    onValueChange = { 
+                        if (it.isEmpty() || it.matches(Regex("\\d*\\.?\\d*"))) {
+                            sellQuantity = it
+                        }
+                    },
+                    label = { Text("卖出数量") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = if (isOverQuantity) RedLoss else GreenPrimary,
+                        unfocusedBorderColor = if (isOverQuantity) RedLoss else GrayBorder
+                    ),
+                    isError = isOverQuantity,
+                    supportingText = {
+                        if (isOverQuantity) {
+                            Text("卖出数量不能超过持仓数量", color = RedLoss)
+                        } else if (finalSellQuantity > 0) {
+                            Text("剩余: ${String.format("%.2f", remainingQuantity)}")
+                        }
+                    }
+                )
                 
                 // 根据模式显示不同的输入
                 when (inputMode) {
@@ -190,7 +219,7 @@ fun ClosePositionDialog(
                 }
                 
                 // 收益预览
-                if (finalSellPrice > 0) {
+                if (finalSellPrice > 0 && finalSellQuantity > 0 && !isOverQuantity) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -263,13 +292,13 @@ fun ClosePositionDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (finalSellPrice > 0) {
-                        onConfirm(finalSellPrice)
+                    if (finalSellPrice > 0 && finalSellQuantity > 0 && !isOverQuantity) {
+                        onConfirm(finalSellPrice, finalSellQuantity)
                     }
                 },
-                enabled = finalSellPrice > 0
+                enabled = finalSellPrice > 0 && finalSellQuantity > 0 && !isOverQuantity
             ) {
-                Text("确定清仓", color = GreenPrimary)
+                Text("确定减仓", color = GreenPrimary)
             }
         },
         dismissButton = {

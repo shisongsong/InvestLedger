@@ -42,8 +42,8 @@ interface TransactionDao {
     /**
      * 获取总收益
      */
-    @Query("SELECT SUM(profit) FROM transactions")
-    fun getTotalProfit(): Flow<Double?>
+    @Query("SELECT COALESCE(SUM(profit), 0.0) FROM transactions")
+    fun getTotalProfit(): Flow<Double>
     
     /**
      * 获取盈利次数
@@ -60,12 +60,12 @@ interface TransactionDao {
     /**
      * 获取总盈利
      */
-    @Query("SELECT SUM(profit) FROM transactions WHERE profit > 0")
-    fun getTotalWin(): Flow<Double?>
+    @Query("SELECT COALESCE(SUM(profit), 0.0) FROM transactions WHERE profit > 0")
+    fun getTotalWin(): Flow<Double>
     
     /**
      * 获取总亏损
      */
-    @Query("SELECT SUM(profit) FROM transactions WHERE profit < 0")
-    fun getTotalLoss(): Flow<Double?>
+    @Query("SELECT COALESCE(SUM(profit), 0.0) FROM transactions WHERE profit < 0")
+    fun getTotalLoss(): Flow<Double>
 }

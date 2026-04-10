@@ -23,6 +23,7 @@ import com.investledger.viewmodel.InvestViewModel
 fun PositionListScreen(
     viewModel: InvestViewModel,
     onAddPosition: () -> Unit,
+    onReducePosition: (Position) -> Unit,
     onClosePosition: (Position) -> Unit
 ) {
     val positions by viewModel.positions.collectAsState()
@@ -132,9 +133,13 @@ fun PositionListScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(positions) { position ->
+                    items(
+                        items = positions,
+                        key = { it.id }
+                    ) { position ->
                         PositionCard(
                             position = position,
+                            onReduce = { onReducePosition(position) },
                             onClose = { onClosePosition(position) },
                             onDelete = { viewModel.deletePosition(position) }
                         )
@@ -151,6 +156,7 @@ fun PositionListScreen(
 @Composable
 fun PositionCard(
     position: Position,
+    onReduce: () -> Unit,
     onClose: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -241,17 +247,36 @@ fun PositionCard(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            Button(
-                onClick = onClose,
+            // 操作按钮
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = GreenSecondary,
-                    contentColor = White
-                )
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.Close, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("清仓")
+                Button(
+                    onClick = onReduce,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = GreenSecondary,
+                        contentColor = White
+                    )
+                ) {
+                    Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("减仓")
+                }
+                
+                Button(
+                    onClick = onClose,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = RedLoss,
+                        contentColor = White
+                    )
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("清仓")
+                }
             }
         }
     }

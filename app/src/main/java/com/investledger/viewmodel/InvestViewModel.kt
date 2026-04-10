@@ -3,7 +3,9 @@ package com.investledger.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.investledger.data.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
@@ -24,11 +26,9 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
     
     // 统计数据
     val totalCost: StateFlow<Double> = positionDao.getTotalCost()
-        .map { it ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
     
     val totalProfit: StateFlow<Double> = transactionDao.getTotalProfit()
-        .map { it ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
     
     val winCount: StateFlow<Int> = transactionDao.getWinCount()
@@ -38,11 +38,9 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     
     val totalWin: StateFlow<Double> = transactionDao.getTotalWin()
-        .map { it ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
     
     val totalLoss: StateFlow<Double> = transactionDao.getTotalLoss()
-        .map { it ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
     
     val positionCount: StateFlow<Int> = positionDao.getPositionCount()
@@ -74,6 +72,45 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
     }
     
     /**
+     * 减仓（部分卖出）
+     */
+    fun reducePosition(positionId: Long, sellPrice: Double, sellQuantity: Double) {
+        viewModelScope.launch {
+            val position = positionDao.getPositionById(positionId)
+            if (position != null && sellQuantity > 0 && sellQuantity <= position.quantity) {
+                val profit = (sellPrice - position.costPrice) * sellQuantity
+                val profitRate = if (position.costPrice != 0.0) {
+                    ((sellPrice - position.costPrice) / position.costPrice) * 100
+                } else 0.0
+                
+                // 创建交易记录
+                val transaction = Transaction(
+                    positionId = position.id,
+                    name = position.name,
+                    type = position.type,
+                    costPrice = position.costPrice,
+                    sellPrice = sellPrice,
+                    quantity = sellQuantity,
+                    profit = profit,
+                    profitRate = profitRate
+                )
+                transactionDao.insertTransaction(transaction)
+                
+                // 更新持仓数量
+                val newQuantity = position.quantity - sellQuantity
+                if (newQuantity <= 0) {
+                    // 全部卖出，删除持仓
+                    positionDao.deletePosition(position)
+                } else {
+                    // 部分卖出，更新持仓（保持成本价不变）
+                    val updatedPosition = position.copy(quantity = newQuantity)
+                    positionDao.updatePosition(updatedPosition)
+                }
+            }
+        }
+    }
+    
+    /**
      * 清仓（卖出）
      */
     fun closePosition(positionId: Long, sellPrice: Double) {
@@ -81,7 +118,9 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
             val position = positionDao.getPositionById(positionId)
             if (position != null) {
                 val profit = (sellPrice - position.costPrice) * position.quantity
-                val profitRate = ((sellPrice - position.costPrice) / position.costPrice) * 100
+                val profitRate = if (position.costPrice != 0.0) {
+                    ((sellPrice - position.costPrice) / position.costPrice) * 100
+                } else 0.0
                 
                 val transaction = Transaction(
                     positionId = position.id,
