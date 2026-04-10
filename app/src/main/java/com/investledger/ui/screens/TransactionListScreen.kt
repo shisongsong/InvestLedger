@@ -150,7 +150,6 @@ fun TransactionCard(
     onDelete: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showEditDialog by remember { mutableStateOf(false) }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -182,7 +181,7 @@ fun TransactionCard(
                 }
                 
                 Row {
-                    IconButton(onClick = { showEditDialog = true }) {
+                    IconButton(onClick = onEdit) {
                         Icon(
                             Icons.Default.Edit,
                             contentDescription = "编辑",
@@ -310,17 +309,4 @@ fun TransactionCard(
             }
         )
     }
-    
-// 编辑对话框
-if (showEditDialog) {
-    EditTransactionDialog(
-        transaction = transaction,
-        onDismiss = { showEditDialog = false },
-        onConfirm = { name, type, costPrice, sellPrice, quantity, createdAt ->
-            // 调用传入的编辑函数
-            onEdit()
-            showEditDialog = false
-        }
-    )
-}
 }

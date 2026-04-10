@@ -166,7 +166,6 @@ fun PositionCard(
     onDelete: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showEditDialog by remember { mutableStateOf(false) }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -195,7 +194,7 @@ fun PositionCard(
                     )
                 }
                 
-                IconButton(onClick = { showEditDialog = true }) {
+                IconButton(onClick = onEdit) {
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = "编辑",
@@ -310,20 +309,4 @@ fun PositionCard(
             }
         )
     }
-    
-// 编辑对话框 - 不是直接调用 onEdit，而是处理编辑操作
-if (showEditDialog) {
-    EditPositionDialog(
-        position = position,
-        onDismiss = { showEditDialog = false },
-        onConfirm = { name, type, costPrice, quantity, note, createdAt ->
-            // 我们应该调用父组件提供的编辑功能
-            // 但实际上在这里并不应该立即执行 onEdit() 
-            // 因为我们已经把数据传回给父组件进行处理
-            // onEdit 通常应包含实际的业务操作逻辑
-            onEdit()
-            showEditDialog = false
-        }
-    )
-}
 }
