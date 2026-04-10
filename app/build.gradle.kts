@@ -5,10 +5,13 @@ plugins {
 }
 
 // Signing configuration - supports both environment variables and local.properties
-val keystoreFile = System.getenv("KEYSTORE_FILE") ?: project.findProperty("KEYSTORE_FILE") as String?
-val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as String?
-val keyAlias = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as String?
-val keyPassword = System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as String?
+val keystoreFile: String? = System.getenv("KEYSTORE_FILE") ?: project.findProperty("KEYSTORE_FILE") as String?
+val keystorePassword: String? = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as String?
+val keyAlias: String? = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as String?
+val keyPassword: String? = System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as String?
+
+// Only use signing config when all values are present
+val useSigningConfig = keystoreFile != null && keystorePassword != null && keyAlias != null && keyPassword != null
 
 android {
     namespace = "com.investledger"
@@ -28,13 +31,12 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            // Only configure signing if all required values are present
-            if (keystoreFile != null && keystorePassword != null && keyAlias != null && keyPassword != null) {
-                storeFile = file(keystoreFile)
-                storePassword = keystorePassword
-                this.keyAlias = keyAlias
-                this.keyPassword = keyPassword
+        if (useSigningConfig) {
+            create("release") {
+                storeFile = file(keystoreFile!!)
+                storePassword = keystorePassword!!
+                this.keyAlias = keyAlias!!
+                this.keyPassword = keyPassword!!
             }
         }
     }
@@ -47,8 +49,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Only use signing config if keystore is available
-            if (keystoreFile != null) {
+            if (useSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
