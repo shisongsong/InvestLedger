@@ -12,6 +12,7 @@ import com.investledger.ui.theme.*
 /**
  * 建仓对话框
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OpenPositionDialog(
     onDismiss: () -> Unit,
