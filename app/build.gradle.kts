@@ -5,10 +5,18 @@ plugins {
 }
 
 // Signing configuration - supports both environment variables and local.properties
-val keystoreFilePath: String? = System.getenv("KEYSTORE_FILE") ?: project.findProperty("KEYSTORE_FILE") as String?
-val keystorePassword: String? = System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") as String?
-val keyAlias: String? = System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") as String?
-val keyPassword: String? = System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") as String?
+val keystoreFilePath: String? = System.getenv("KEYSTORE_FILE")
+val keystorePassword: String? = System.getenv("KEYSTORE_PASSWORD")
+val keyAlias: String? = System.getenv("KEY_ALIAS")
+val keyPassword: String? = System.getenv("KEY_PASSWORD")
+
+// Debug logging
+println("=== Signing Config Debug ===")
+println("KEYSTORE_FILE: $keystoreFilePath")
+println("KEYSTORE_PASSWORD: ${if (keystorePassword != null) "SET" else "NULL"}")
+println("KEY_ALIAS: $keyAlias")
+println("KEY_PASSWORD: ${if (keyPassword != null) "SET" else "NULL"}")
+println("============================")
 
 android {
     namespace = "com.investledger"
@@ -28,15 +36,16 @@ android {
     }
 
     signingConfigs {
-        // Create release signing config if all values are present
         if (keystoreFilePath != null && keystorePassword != null && keyAlias != null && keyPassword != null) {
             create("release") {
-                // Use File constructor to handle relative paths properly
                 storeFile = File(rootProject.projectDir, keystoreFilePath)
                 storePassword = keystorePassword
                 this.keyAlias = keyAlias
                 this.keyPassword = keyPassword
             }
+            println("Signing config 'release' created successfully")
+        } else {
+            println("WARNING: Signing config not created - missing variables")
         }
     }
 
@@ -80,13 +89,13 @@ android {
 }
 
 dependencies {
-    // Core
+    // Core Android
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
-    implementation("androidx.activity:activity-compose:1.8.1")
+    implementation("androidx.activity:activity-compose:1.8.2")
     
-    // Compose
-    implementation(platform("androidx.compose:compose-bom:2023.10.01"))
+    // Jetpack Compose
+    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -94,21 +103,18 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     
     // Navigation
-    implementation("androidx.navigation:navigation-compose:2.7.5")
+    implementation("androidx.navigation:navigation-compose:2.7.6")
     
-    // Room
-    implementation("androidx.room:room-runtime:2.6.0")
-    implementation("androidx.room:room-ktx:2.6.0")
-    ksp("androidx.room:room-compiler:2.6.0")
-    
-    // ViewModel
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+    // Room Database
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
     
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.01"))
+    androidTestImplementation(platform("androidx.compose:compose-bom:2023.08.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
