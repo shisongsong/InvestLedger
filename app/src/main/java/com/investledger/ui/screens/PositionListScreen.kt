@@ -310,4 +310,17 @@ fun PositionCard(
             }
         )
     }
+    
+    // 编辑对话框 - 这里是添加的对话框，调用传入的 onEdit 回调
+    if (showEditDialog) {
+        EditPositionDialog(
+            position = position,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { name, type, costPrice, quantity, note, createdAt ->
+                // 调用传入的编辑函数，这个函数会被主界面传进来的回调处理
+                onEdit()
+                showEditDialog = false
+            }
+        )
+    }
 }
