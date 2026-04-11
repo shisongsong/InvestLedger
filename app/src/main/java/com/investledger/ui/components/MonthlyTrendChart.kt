@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.investledger.data.MonthlyStat
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
 /**
  * 月度收益趋势图
@@ -37,7 +38,7 @@ fun MonthlyTrendChart(
     val profits = monthlyStats.map { it.profit }
     val maxProfit = profits.maxOrNull() ?: 0.0
     val minProfit = profits.minOrNull() ?: 0.0
-    val absMax = maxOf(maxProfit.absoluteValue, minProfit.absoluteValue, 1.0)
+    val absMax = maxOf(abs(maxProfit), abs(minProfit), 1.0)
 
     val greenProfit = Color(0xFF4CAF50)
     val redLoss = Color(0xFFF44336)
@@ -70,7 +71,7 @@ fun MonthlyTrendChart(
                         size = Size(halfBarWidth * 2, barHeight)
                     )
                 } else {
-                    val barHeight = profit.absoluteValue * scale
+                    val barHeight = abs(profit) * scale
                     drawRect(
                         color = redLoss,
                         topLeft = Offset(x, midY),

@@ -409,7 +409,7 @@ fun OpenPositionDialog(
             TextButton(
                 onClick = {
                     if (name.isNotBlank() && finalCostPrice > 0 && finalQuantity > 0) {
-                        onConfirm(name, type, finalCostPrice, finalQuantity, note, createdAt)
+                        onConfirm(name, type, finalCostPrice, finalQuantity, note, createdAt, false)
                     }
                 },
                 enabled = name.isNotBlank() && finalCostPrice > 0 && finalQuantity > 0

@@ -338,7 +338,7 @@ class InvestViewModel(
      * 从 CSV 导入数据
      */
     fun importData(uri: Uri): kotlinx.coroutines.flow.Flow<Result<Unit>> {
-        return kotlinx.coroutines.flow {
+        return kotlinx.coroutines.flow.flow {
             val result = csvService.importData(uri)
             if (result.isSuccess) {
                 val importResult = result.getOrNull()!!
