@@ -63,7 +63,15 @@ class InvestViewModel(
     }
     
     /**
+     * 检查是否存在同名持仓
+     */
+    suspend fun checkExistingPosition(name: String): Position? {
+        return positionDao.getPositionByName(name)
+    }
+
+    /**
      * 建仓（买入）
+     * @param mergeWithExisting 是否合并到已有持仓（加仓）
      */
     fun openPosition(
         name: String,
@@ -71,20 +79,49 @@ class InvestViewModel(
         costPrice: Double,
         quantity: Double,
         note: String = "",
-        createdAt: Long = System.currentTimeMillis()
+        createdAt: Long = System.currentTimeMillis(),
+        mergeWithExisting: Boolean = false
     ) {
         viewModelScope.launch {
-            val position = Position(
-                name = name,
-                type = type,
-                costPrice = costPrice,
-                quantity = quantity,
-                createdAt = createdAt,
-                note = note
-            )
-            positionDao.insertPosition(position)
+            if (mergeWithExisting) {
+                val existing = positionDao.getPositionByName(name)
+                if (existing != null) {
+                    val newQuantity = existing.quantity + quantity
+                    val newTotalCost = (existing.costPrice * existing.quantity) + (costPrice * quantity)
+                    val newCostPrice = if (newQuantity > 0) newTotalCost / newQuantity else costPrice
+                    
+                    // 合并备注
+                    val mergedNote = when {
+                        existing.note.isBlank() -> note
+                        note.isBlank() -> existing.note
+                        else -> "${existing.note} | $note"
+                    }
+                    
+                    val updated = existing.copy(
+                        quantity = newQuantity,
+                        costPrice = newCostPrice,
+                        note = mergedNote,
+                        createdAt = existing.createdAt // 保持首次建仓时间
+                    )
+                    positionDao.updatePosition(updated)
+                } else {
+                    // 如果未找到，则新建
+                    val position = Position(name = name, type = type, costPrice = costPrice, quantity = quantity, createdAt = createdAt, note = note)
+                    positionDao.insertPosition(position)
+                }
+            } else {
+                val position = Position(
+                    name = name,
+                    type = type,
+                    costPrice = costPrice,
+                    quantity = quantity,
+                    createdAt = createdAt,
+                    note = note
+                )
+                positionDao.insertPosition(position)
+            }
             
-            // 更新统计（持仓成本变化）
+            // 更新统计
             statisticsService.recalculateAll()
         }
     }

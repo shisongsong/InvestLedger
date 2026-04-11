@@ -139,8 +139,8 @@ fun InvestLedgerApp(viewModel: InvestViewModel) {
         OpenPositionDialog(
             viewModel = viewModel,
             onDismiss = { showOpenDialog = false },
-            onConfirm = { name, type, costPrice, quantity, note, createdAt ->
-                viewModel.openPosition(name, type, costPrice, quantity, note, createdAt)
+            onConfirm = { name, type, costPrice, quantity, note, createdAt, mergeWithExisting ->
+                viewModel.openPosition(name, type, costPrice, quantity, note, createdAt, mergeWithExisting)
                 showOpenDialog = false
             }
         )

@@ -56,6 +56,12 @@ interface PositionDao {
      */
     @Query("SELECT DISTINCT name, type FROM positions ORDER BY createdAt DESC LIMIT 50")
     suspend fun getDistinctNames(): List<NameTypePair>
+    
+    /**
+     * 根据名称查找持仓（忽略大小写，用于加仓检测）
+     */
+    @Query("SELECT * FROM positions WHERE LOWER(name) = LOWER(:name) ORDER BY createdAt DESC LIMIT 1")
+    suspend fun getPositionByName(name: String): Position?
 }
 
 /**
