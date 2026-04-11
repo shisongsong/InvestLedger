@@ -2,9 +2,13 @@ package com.investledger.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
+import android.net.Uri
 import com.investledger.data.*
+import com.investledger.data.CsvService
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -13,8 +17,11 @@ import kotlinx.coroutines.launch
  */
 class InvestViewModel(
     private val database: AppDatabase,
-    private val statisticsService: StatisticsService
+    private val statisticsService: StatisticsService,
+    context: Context
 ) : ViewModel() {
+    
+    private val csvService = CsvService(context)
     
     private val positionDao = database.positionDao()
     private val transactionDao = database.transactionDao()
@@ -300,6 +307,51 @@ class InvestViewModel(
             0.0
         }
     }
+    
+    // ========== 导出/导入 ==========
+    
+    /**
+     * 导出数据到 CSV
+     */
+    fun exportData(uri: Uri): kotlinx.coroutines.flow.Flow<Result<Unit>> {
+        return kotlinx.coroutines.flow.flow {
+            val positionsList = positions.value
+            val transactionsList = transactions.value
+            emit(csvService.exportData(positionsList, transactionsList, uri))
+        }
+    }
+    
+    /**
+     * 从 CSV 导入数据
+     */
+    fun importData(uri: Uri): kotlinx.coroutines.flow.Flow<Result<Unit>> {
+        return kotlinx.coroutines.flow {
+            val result = csvService.importData(uri)
+            if (result.isSuccess) {
+                val importResult = result.getOrNull()!!
+                // 清空现有数据（可选：也可以不删除，直接追加）
+                // 这里采用追加模式
+                
+                importResult.positions.forEach { pos ->
+                    positionDao.insertPosition(pos.copy(id = 0)) // Reset ID for new insert
+                }
+                importResult.transactions.forEach { tx ->
+                    transactionDao.insertTransaction(tx.copy(id = 0))
+                }
+                
+                // 重新计算统计
+                statisticsService.recalculateAll()
+                emit(Result.success(Unit))
+            } else {
+                emit(Result.failure(result.exceptionOrNull() ?: Exception("Import failed")))
+            }
+        }
+    }
+    
+    /**
+     * 获取导出文件名
+     */
+    fun getExportFileName(): String = csvService.generateExportFileName()
     
     /**
      * 获取投资名称建议（用于自动补全）

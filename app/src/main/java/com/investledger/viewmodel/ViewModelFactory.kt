@@ -21,7 +21,7 @@ class InvestViewModelFactory(private val context: Context) : ViewModelProvider.F
                 coroutineScope = CoroutineScope(SupervisorJob())
             )
             @Suppress("UNCHECKED_CAST")
-            return InvestViewModel(database, statisticsService) as T
+            return InvestViewModel(database, statisticsService, context) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

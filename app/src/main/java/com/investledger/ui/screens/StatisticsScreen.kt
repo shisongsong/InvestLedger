@@ -1,5 +1,8 @@
 package com.investledger.ui.screens
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -7,10 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.investledger.ui.theme.*
 import com.investledger.viewmodel.InvestViewModel
+import kotlinx.coroutines.launch
 
 /**
  * 统计屏幕
@@ -20,6 +25,7 @@ import com.investledger.viewmodel.InvestViewModel
 fun StatisticsScreen(
     viewModel: InvestViewModel
 ) {
+    val context = LocalContext.current
     val totalProfit by viewModel.totalProfit.collectAsState()
     val winCount by viewModel.winCount.collectAsState()
     val lossCount by viewModel.lossCount.collectAsState()
@@ -29,6 +35,41 @@ fun StatisticsScreen(
     val positionCount by viewModel.positionCount.collectAsState()
     
     val winRate = viewModel.calculateWinRate()
+    val scope = rememberCoroutineScope()
+    
+    // 导出启动器
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                viewModel.exportData(it).collect { result ->
+                    result.onSuccess {
+                        Toast.makeText(context, "导出成功", Toast.LENGTH_SHORT).show()
+                    }.onFailure { e ->
+                        Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+    
+    // 导入启动器
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                viewModel.importData(it).collect { result ->
+                    result.onSuccess {
+                        Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
+                    }.onFailure { e ->
+                        Toast.makeText(context, "导入失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -219,6 +260,44 @@ fun StatisticsScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = RedLoss
                             )
+                        }
+                    }
+                }
+            }
+            
+            // 数据管理卡片
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "数据管理",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val fileName = viewModel.getExportFileName()
+                                exportLauncher.launch(fileName)
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("导出 CSV")
+                        }
+                        
+                        OutlinedButton(
+                            onClick = { importLauncher.launch("text/csv") },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("导入 CSV")
                         }
                     }
                 }
