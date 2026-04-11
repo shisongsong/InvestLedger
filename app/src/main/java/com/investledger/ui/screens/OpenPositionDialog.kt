@@ -11,7 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -19,6 +20,8 @@ import com.investledger.data.NameTypePair
 import com.investledger.ui.components.DateTimePicker
 import com.investledger.ui.theme.*
 import com.investledger.viewmodel.InvestViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -41,7 +44,9 @@ fun OpenPositionDialog(
     // 自动补全相关状态
     var nameSuggestions by remember { mutableStateOf<List<NameTypePair>>(emptyList()) }
     var showSuggestions by remember { mutableStateOf(false) }
+    var searchJob by remember { mutableStateOf<Job?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
     
     // 输入模式：0=成本价+数量, 1=金额+数量
     var inputMode by remember { mutableStateOf(0) }
@@ -90,9 +95,11 @@ fun OpenPositionDialog(
         else -> 0.0
     }
     
-    // 更新建议列表
+    // 更新建议列表（带防抖和协程取消）
     fun updateSuggestions(query: String) {
-        coroutineScope.launch {
+        searchJob?.cancel()  // 取消上一次的查询
+        searchJob = coroutineScope.launch {
+            delay(300)  // 300ms 防抖，避免频繁查询
             nameSuggestions = viewModel.getNameSuggestions(query)
             showSuggestions = nameSuggestions.isNotEmpty()
         }
@@ -103,6 +110,7 @@ fun OpenPositionDialog(
         name = suggestion.name
         type = suggestion.type
         showSuggestions = false
+        focusManager.clearFocus()  // 收起键盘
     }
     
     AlertDialog(

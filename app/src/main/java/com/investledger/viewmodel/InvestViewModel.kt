@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.investledger.data.*
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -12,7 +11,10 @@ import kotlinx.coroutines.launch
 /**
  * 投资账本 ViewModel
  */
-class InvestViewModel(private val database: AppDatabase) : ViewModel() {
+class InvestViewModel(
+    private val database: AppDatabase,
+    private val statisticsService: StatisticsService
+) : ViewModel() {
     
     private val positionDao = database.positionDao()
     private val transactionDao = database.transactionDao()
@@ -25,7 +27,10 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
     val transactions: StateFlow<List<Transaction>> = transactionDao.getAllTransactions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     
-    // 统计数据
+    // 统计快照（新的优化方案）
+    val statistics: StateFlow<StatisticsSnapshot> = statisticsService.statistics
+    
+    // 保留旧的统计查询作为后备（兼容旧代码）
     val totalCost: StateFlow<Double> = positionDao.getTotalCost()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
     
@@ -50,6 +55,13 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
     val transactionCount: StateFlow<Int> = transactionDao.getTransactionCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
     
+    init {
+        // 初始化统计服务
+        viewModelScope.launch {
+            statisticsService.initializeIfNeeded()
+        }
+    }
+    
     /**
      * 建仓（买入）
      */
@@ -71,6 +83,9 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
                 note = note
             )
             positionDao.insertPosition(position)
+            
+            // 更新统计（持仓成本变化）
+            statisticsService.recalculateAll()
         }
     }
     
@@ -109,6 +124,9 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
                     val updatedPosition = position.copy(quantity = newQuantity)
                     positionDao.updatePosition(updatedPosition)
                 }
+                
+                // 增量更新统计
+                statisticsService.onTransactionAdded(transaction)
             }
         }
     }
@@ -129,6 +147,9 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
                     createdAt = createdAt
                 )
                 positionDao.updatePosition(updatedPosition)
+                
+                // 重新计算统计（持仓成本变化）
+                statisticsService.recalculateAll()
             }
         }
     }
@@ -163,7 +184,14 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
                     profitRate = profitRate,
                     createdAt = createdAt
                 )
+                
+                // 先删除旧的统计影响
+                statisticsService.onTransactionDeleted(transaction)
+                
                 transactionDao.updateTransaction(updatedTransaction)
+                
+                // 再添加新的统计影响
+                statisticsService.onTransactionAdded(updatedTransaction)
             }
         }
     }
@@ -193,6 +221,9 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
                 
                 transactionDao.insertTransaction(transaction)
                 positionDao.deletePosition(position)
+                
+                // 增量更新统计
+                statisticsService.onTransactionAdded(transaction)
             }
         }
     }
@@ -203,6 +234,9 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
     fun deletePosition(position: Position) {
         viewModelScope.launch {
             positionDao.deletePosition(position)
+            
+            // 重新计算统计
+            statisticsService.recalculateAll()
         }
     }
     
@@ -211,6 +245,9 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
      */
     fun deleteTransaction(transaction: Transaction) {
         viewModelScope.launch {
+            // 先删除旧的统计影响
+            statisticsService.onTransactionDeleted(transaction)
+            
             transactionDao.deleteTransaction(transaction)
         }
     }

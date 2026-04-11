@@ -54,7 +54,7 @@ interface PositionDao {
     /**
      * 获取所有不重复的投资名称和类型（用于自动补全）
      */
-    @Query("SELECT DISTINCT name, type FROM positions ORDER BY createdAt DESC")
+    @Query("SELECT DISTINCT name, type FROM positions ORDER BY createdAt DESC LIMIT 50")
     suspend fun getDistinctNames(): List<NameTypePair>
 }
 
