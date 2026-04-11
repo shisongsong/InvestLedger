@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,28 +30,70 @@ fun PositionListScreen(
     onClosePosition: (Position) -> Unit,
     onEditPosition: (Position) -> Unit
 ) {
-    val positions by viewModel.positions.collectAsState()
+    val allPositions by viewModel.positions.collectAsState()
     val totalCost by viewModel.totalCost.collectAsState()
     var showPriceDialog by remember { mutableStateOf<Position?>(null) }
     
+    // 搜索状态
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredPositions = remember(allPositions, searchQuery) {
+        if (searchQuery.isBlank()) {
+            allPositions
+        } else {
+            val lowerQuery = searchQuery.lowercase()
+            allPositions.filter { 
+                it.name.lowercase().contains(lowerQuery) || 
+                it.type.lowercase().contains(lowerQuery) ||
+                it.note.lowercase().contains(lowerQuery)
+            }
+        }
+    }
+    
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { 
-                    Text(
-                        "持仓",
-                        style = MaterialTheme.typography.headlineSmall
+            Column {
+                CenterAlignedTopAppBar(
+                    title = { 
+                        Text(
+                            "持仓",
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    },
+                    actions = {
+                        IconButton(onClick = { /* Toggle search */ }) {
+                            Icon(Icons.Outlined.Search, contentDescription = "搜索")
+                        }
+                        IconButton(onClick = onAddPosition) {
+                            Icon(Icons.Default.Add, contentDescription = "建仓")
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = White
                     )
-                },
-                actions = {
-                    IconButton(onClick = onAddPosition) {
-                        Icon(Icons.Default.Add, contentDescription = "建仓")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = White
                 )
-            )
+                
+                // 搜索栏
+                if (searchQuery.isNotEmpty() || allPositions.size > 3) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        placeholder = { Text("搜索名称/类型/备注") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "清除")
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.medium
+                    )
+                }
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -69,7 +112,7 @@ fun PositionListScreen(
                 .padding(padding)
         ) {
             // 总成本卡片
-            if (positions.isNotEmpty()) {
+            if (filteredPositions.isNotEmpty()) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -93,8 +136,13 @@ fun PositionListScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(8.dp))
+                        val displayText = if (searchQuery.isNotBlank()) {
+                            "${filteredPositions.size}/${allPositions.size} 个持仓"
+                        } else {
+                            "${allPositions.size} 个持仓"
+                        }
                         Text(
-                            "${positions.size} 个持仓",
+                            displayText,
                             style = MaterialTheme.typography.bodySmall,
                             color = GrayText
                         )
@@ -103,7 +151,7 @@ fun PositionListScreen(
             }
             
             // 持仓列表
-            if (positions.isEmpty()) {
+            if (filteredPositions.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -119,13 +167,13 @@ fun PositionListScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            "暂无持仓",
+                            if (searchQuery.isNotBlank()) "无匹配结果" else "暂无持仓",
                             style = MaterialTheme.typography.titleMedium,
                             color = GrayText
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "点击右下角按钮开始建仓",
+                            if (searchQuery.isNotBlank()) "换个关键词试试" else "点击右下角按钮开始建仓",
                             style = MaterialTheme.typography.bodyMedium,
                             color = GrayLight
                         )
@@ -138,7 +186,7 @@ fun PositionListScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(
-                        items = positions,
+                        items = filteredPositions,
                         key = { it.id }
                     ) { position ->
                         PositionCard(

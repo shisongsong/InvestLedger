@@ -5,6 +5,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,8 +28,29 @@ fun TransactionListScreen(
     viewModel: InvestViewModel,
     onEditTransaction: (Transaction) -> Unit
 ) {
-    val transactions by viewModel.transactions.collectAsState()
+    val allTransactions by viewModel.transactions.collectAsState()
     val totalProfit by viewModel.totalProfit.collectAsState()
+    
+    // 搜索和筛选状态
+    var searchQuery by remember { mutableStateOf("") }
+    var profitFilter by remember { mutableStateOf("全部") } // 全部/盈利/亏损
+    val filterOptions = listOf("全部", "盈利", "亏损")
+    
+    val filteredTransactions = remember(allTransactions, searchQuery, profitFilter) {
+        var filtered = allTransactions
+        if (searchQuery.isNotBlank()) {
+            val lowerQuery = searchQuery.lowercase()
+            filtered = filtered.filter { 
+                it.name.lowercase().contains(lowerQuery) || 
+                it.type.lowercase().contains(lowerQuery)
+            }
+        }
+        when (profitFilter) {
+            "盈利" -> filtered = filtered.filter { it.profit > 0 }
+            "亏损" -> filtered = filtered.filter { it.profit < 0 }
+        }
+        filtered
+    }
     
     Scaffold(
         topBar = {
@@ -50,8 +73,53 @@ fun TransactionListScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // 搜索和筛选栏
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp),
+                    placeholder = { Text("搜索") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Clear, contentDescription = "清除")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
+                )
+            }
+            
+            // 筛选按钮
+            if (allTransactions.isNotEmpty()) {
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    filterOptions.forEachIndexed { index, option ->
+                        SegmentedButton(
+                            selected = profitFilter == option,
+                            onClick = { profitFilter = option },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = filterOptions.size)
+                        ) {
+                            Text(option)
+                        }
+                    }
+                }
+            }
+            
             // 总收益卡片
-            if (transactions.isNotEmpty()) {
+            if (filteredTransactions.isNotEmpty()) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -80,8 +148,13 @@ fun TransactionListScreen(
                             color = if (totalProfit >= 0) GreenPrimary else RedLoss
                         )
                         Spacer(modifier = Modifier.height(8.dp))
+                        val displayText = if (searchQuery.isNotBlank() || profitFilter != "全部") {
+                            "${filteredTransactions.size}/${allTransactions.size} 笔交易"
+                        } else {
+                            "${allTransactions.size} 笔交易"
+                        }
                         Text(
-                            "${transactions.size} 笔交易",
+                            displayText,
                             style = MaterialTheme.typography.bodySmall,
                             color = GrayText
                         )
@@ -90,7 +163,7 @@ fun TransactionListScreen(
             }
             
             // 交易记录列表
-            if (transactions.isEmpty()) {
+            if (filteredTransactions.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -106,13 +179,13 @@ fun TransactionListScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            "暂无交易记录",
+                            if (searchQuery.isNotBlank() || profitFilter != "全部") "无匹配结果" else "暂无交易记录",
                             style = MaterialTheme.typography.titleMedium,
                             color = GrayText
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "清仓后会自动生成交易记录",
+                            if (searchQuery.isNotBlank() || profitFilter != "全部") "换个条件试试" else "清仓后会自动生成交易记录",
                             style = MaterialTheme.typography.bodyMedium,
                             color = GrayLight
                         )
@@ -125,7 +198,7 @@ fun TransactionListScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(
-                        items = transactions,
+                        items = filteredTransactions,
                         key = { it.id }
                     ) { transaction ->
                         TransactionCard(
