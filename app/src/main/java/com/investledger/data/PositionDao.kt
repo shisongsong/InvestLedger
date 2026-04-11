@@ -62,6 +62,12 @@ interface PositionDao {
      */
     @Query("SELECT * FROM positions WHERE LOWER(name) = LOWER(:name) ORDER BY createdAt DESC LIMIT 1")
     suspend fun getPositionByName(name: String): Position?
+    
+    /**
+     * 更新持仓当前价格
+     */
+    @Query("UPDATE positions SET currentPrice = :price WHERE id = :id")
+    suspend fun updateCurrentPrice(id: Long, price: Double)
 }
 
 /**

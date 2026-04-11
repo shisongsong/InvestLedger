@@ -31,6 +31,7 @@ fun PositionListScreen(
 ) {
     val positions by viewModel.positions.collectAsState()
     val totalCost by viewModel.totalCost.collectAsState()
+    var showPriceDialog by remember { mutableStateOf<Position?>(null) }
     
     Scaffold(
         topBar = {
@@ -145,13 +146,79 @@ fun PositionListScreen(
                             onEdit = { onEditPosition(position) },
                             onReduce = { onReducePosition(position) },
                             onClose = { onClosePosition(position) },
-                            onDelete = { viewModel.deletePosition(position) }
+                            onDelete = { viewModel.deletePosition(position) },
+                            onUpdatePrice = { showPriceDialog = position }
                         )
                     }
                 }
             }
         }
     }
+    
+    // 设置现价对话框
+    val pricePosition = showPriceDialog
+    if (pricePosition != null) {
+        CurrentPriceDialog(
+            position = pricePosition,
+            onDismiss = { showPriceDialog = null },
+            onConfirm = { price ->
+                viewModel.updateCurrentPrice(pricePosition.id, price)
+                showPriceDialog = null
+            }
+        )
+    }
+}
+
+/**
+ * 设置现价对话框
+ */
+@Composable
+fun CurrentPriceDialog(
+    position: Position,
+    onDismiss: () -> Unit,
+    onConfirm: (Double) -> Unit
+) {
+    var priceText by remember { mutableStateOf(position.currentPrice.takeIf { it > 0 }?.let { String.format("%.2f", it) } ?: "") }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("设置现价 - ${position.name}") },
+        text = {
+            Column {
+                Text("请输入${position.name}的当前价格", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = priceText,
+                    onValueChange = { 
+                        if (it.isEmpty() || it.matches(Regex("\\d*\\.?\\d*"))) {
+                            priceText = it
+                        }
+                    },
+                    label = { Text("当前价格") },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val price = priceText.toDoubleOrNull() ?: 0.0
+                    if (price > 0) onConfirm(price)
+                },
+                enabled = (priceText.toDoubleOrNull() ?: 0.0) > 0
+            ) {
+                Text("确定", color = GreenPrimary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 }
 
 /**
@@ -163,9 +230,15 @@ fun PositionCard(
     onEdit: () -> Unit,
     onReduce: () -> Unit,
     onClose: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onUpdatePrice: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    
+    // 计算浮盈浮亏
+    val floatingProfit = position.floatingProfit
+    val floatingRate = position.floatingProfitRate
+    val hasCurrentPrice = position.currentPrice > 0
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -194,12 +267,70 @@ fun PositionCard(
                     )
                 }
                 
-                IconButton(onClick = onEdit) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "编辑",
-                        tint = GrayLight
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onUpdatePrice) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "设置现价",
+                            tint = if (hasCurrentPrice) GreenPrimary else GrayLight
+                        )
+                    }
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "编辑",
+                            tint = GrayLight
+                        )
+                    }
+                }
+            }
+            
+            // 浮动盈亏显示
+            if (hasCurrentPrice) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            "现价",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = GrayText
+                        )
+                        Text(
+                            position.formatCurrentPrice(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "浮动盈亏",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = GrayText
+                        )
+                        Text(
+                            if (floatingProfit >= 0) "+${String.format("%.2f", floatingProfit)}" else String.format("%.2f", floatingProfit),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (floatingProfit >= 0) GreenPrimary else RedLoss
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "盈亏比例",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = GrayText
+                        )
+                        Text(
+                            if (floatingRate >= 0) "+${String.format("%.2f%%", floatingRate)}" else String.format("%.2f%%", floatingRate),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (floatingRate >= 0) GreenPrimary else RedLoss
+                        )
+                    }
                 }
             }
             

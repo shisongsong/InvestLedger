@@ -273,6 +273,15 @@ class InvestViewModel(
     }
     
     /**
+     * 更新持仓当前价格
+     */
+    fun updateCurrentPrice(positionId: Long, price: Double) {
+        viewModelScope.launch {
+            positionDao.updateCurrentPrice(positionId, price)
+        }
+    }
+    
+    /**
      * 删除持仓
      */
     fun deletePosition(position: Position) {

@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  */
 @Database(
     entities = [Position::class, Transaction::class, StatisticsSnapshot::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,6 +28,13 @@ abstract class AppDatabase : RoomDatabase() {
         /**
          * 数据库迁移 2 -> 3：添加统计快照表
          */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 添加 currentPrice 列到 positions 表
+                database.execSQL("ALTER TABLE positions ADD COLUMN currentPrice REAL NOT NULL DEFAULT 0.0")
+            }
+        }
+        
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 创建统计快照表
@@ -58,7 +65,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "invest_ledger_db"
                 )
-                    .addMigrations(MIGRATION_2_3)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
