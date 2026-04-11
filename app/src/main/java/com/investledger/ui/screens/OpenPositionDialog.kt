@@ -1,7 +1,12 @@
 package com.investledger.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -10,17 +15,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.investledger.data.NameTypePair
 import com.investledger.ui.components.DateTimePicker
 import com.investledger.ui.theme.*
+import com.investledger.viewmodel.InvestViewModel
+import kotlinx.coroutines.launch
 
 /**
- * 建仓对话框 - 支持两种计算方式和日期时间设置
+ * 建仓对话框 - 支持两种计算方式、日期时间设置和自动补全
  * 1. 按成本价+数量
  * 2. 按金额+数量（自动计算成本价）
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OpenPositionDialog(
+    viewModel: InvestViewModel,
     onDismiss: () -> Unit,
     onConfirm: (name: String, type: String, costPrice: Double, quantity: Double, note: String, createdAt: Long) -> Unit
 ) {
@@ -28,6 +37,11 @@ fun OpenPositionDialog(
     var type by remember { mutableStateOf("股票") }
     var note by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
+    
+    // 自动补全相关状态
+    var nameSuggestions by remember { mutableStateOf<List<NameTypePair>>(emptyList()) }
+    var showSuggestions by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     
     // 输入模式：0=成本价+数量, 1=金额+数量
     var inputMode by remember { mutableStateOf(0) }
@@ -76,6 +90,21 @@ fun OpenPositionDialog(
         else -> 0.0
     }
     
+    // 更新建议列表
+    fun updateSuggestions(query: String) {
+        coroutineScope.launch {
+            nameSuggestions = viewModel.getNameSuggestions(query)
+            showSuggestions = nameSuggestions.isNotEmpty()
+        }
+    }
+    
+    // 选择建议项
+    fun selectSuggestion(suggestion: NameTypePair) {
+        name = suggestion.name
+        type = suggestion.type
+        showSuggestions = false
+    }
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { 
@@ -89,18 +118,68 @@ fun OpenPositionDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // 名称输入
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("投资名称/代码") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = GreenPrimary,
-                        unfocusedBorderColor = GrayBorder
-                    )
-                )
+                // 名称输入（带自动补全）
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Column {
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { newName ->
+                                name = newName
+                                if (newName.isNotBlank()) {
+                                    updateSuggestions(newName)
+                                } else {
+                                    showSuggestions = false
+                                }
+                            },
+                            label = { Text("投资名称/代码") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = GreenPrimary,
+                                unfocusedBorderColor = GrayBorder
+                            ),
+                            trailingIcon = if (name.isNotEmpty()) {
+                                {
+                                    IconButton(onClick = {
+                                        name = ""
+                                        showSuggestions = false
+                                    }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "清空",
+                                            tint = GrayText
+                                        )
+                                    }
+                                }
+                            } else {
+                                null
+                            }
+                        )
+                        
+                        // 下拉建议列表
+                        if (showSuggestions && nameSuggestions.isNotEmpty()) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            ) {
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 200.dp)
+                                ) {
+                                    items(nameSuggestions) { suggestion ->
+                                        SuggestionItem(
+                                            suggestion = suggestion,
+                                            onClick = { selectSuggestion(suggestion) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 
                 // 类型选择
                 ExposedDropdownMenuBox(
@@ -330,5 +409,39 @@ fun OpenPositionDialog(
                 Text("取消")
             }
         }
+    )
+}
+
+/**
+ * 建议项组件
+ */
+@Composable
+private fun SuggestionItem(
+    suggestion: NameTypePair,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = suggestion.name,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = suggestion.type,
+            style = MaterialTheme.typography.labelSmall,
+            color = GrayText
+        )
+    }
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        thickness = 0.5.dp,
+        color = GrayBorder
     )
 }

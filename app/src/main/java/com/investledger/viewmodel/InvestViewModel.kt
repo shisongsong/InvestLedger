@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.investledger.data.*
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -224,5 +225,19 @@ class InvestViewModel(private val database: AppDatabase) : ViewModel() {
         } else {
             0.0
         }
+    }
+    
+    /**
+     * 获取投资名称建议（用于自动补全）
+     */
+    suspend fun getNameSuggestions(query: String): List<NameTypePair> {
+        val allPairs = positionDao.getDistinctNames()
+        if (query.isBlank()) return allPairs.take(10) // 空白时返回最近10个
+        
+        val lowerQuery = query.lowercase()
+        return allPairs.filter { pair ->
+            pair.name.lowercase().contains(lowerQuery) ||
+            pair.type.lowercase().contains(lowerQuery)
+        }.take(10) // 最多显示10个建议
     }
 }

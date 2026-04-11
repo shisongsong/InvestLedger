@@ -50,4 +50,18 @@ interface PositionDao {
      */
     @Query("SELECT COALESCE(SUM(costPrice * quantity), 0.0) FROM positions")
     fun getTotalCost(): Flow<Double>
+    
+    /**
+     * 获取所有不重复的投资名称和类型（用于自动补全）
+     */
+    @Query("SELECT DISTINCT name, type FROM positions ORDER BY createdAt DESC")
+    suspend fun getDistinctNames(): List<NameTypePair>
 }
+
+/**
+ * 名称和类型的组合，用于自动补全建议
+ */
+data class NameTypePair(
+    val name: String,
+    val type: String
+)
