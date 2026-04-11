@@ -156,8 +156,8 @@ class CsvService(private val context: Context) {
     // ========== 辅助方法 ==========
     
     private fun escapeCsv(value: String): String {
-        if (value.contains(",") || value.contains(""") || value.contains("\n")) {
-            return """ + value.replace(""", """") + """
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\""
         }
         return value
     }
