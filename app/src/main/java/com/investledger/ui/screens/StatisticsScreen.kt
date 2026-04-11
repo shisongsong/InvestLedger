@@ -14,6 +14,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.investledger.ui.theme.*
+import com.investledger.data.MonthlyStat
+import com.investledger.ui.components.MonthlyTrendChart
 import com.investledger.viewmodel.InvestViewModel
 import kotlinx.coroutines.launch
 
@@ -33,6 +35,7 @@ fun StatisticsScreen(
     val totalLoss by viewModel.totalLoss.collectAsState()
     val transactionCount by viewModel.transactionCount.collectAsState()
     val positionCount by viewModel.positionCount.collectAsState()
+    val monthlyStats by viewModel.monthlyStats.collectAsState()
     
     val winRate = viewModel.calculateWinRate()
     val scope = rememberCoroutineScope()
@@ -260,6 +263,49 @@ fun StatisticsScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = RedLoss
                             )
+                        }
+                    }
+                }
+            }
+            
+            // 月度收益趋势图
+            if (monthlyStats.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "月度收益趋势",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        MonthlyTrendChart(monthlyStats = monthlyStats)
+                        
+                        // 月度详情
+                        if (monthlyStats.size <= 6) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            monthlyStats.forEach { stat ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        "${stat.year}/${String.format("%02d", stat.month)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = GrayText
+                                    )
+                                    Text(
+                                        if (stat.profit >= 0) "+${String.format("%.2f", stat.profit)}" else String.format("%.2f", stat.profit),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (stat.profit >= 0) GreenPrimary else RedLoss
+                                    )
+                                }
+                            }
                         }
                     }
                 }

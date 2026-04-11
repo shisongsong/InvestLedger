@@ -4,6 +4,18 @@ import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 
 /**
+ * 月度统计数据
+ */
+data class MonthlyStat(
+    val year: Int,
+    val month: Int,
+    val profit: Double,
+    val winCount: Int,
+    val lossCount: Int,
+    val transactionCount: Int
+)
+
+/**
  * 交易记录数据访问对象
  */
 @Dao
@@ -74,4 +86,21 @@ interface TransactionDao {
      */
     @Query("SELECT COALESCE(SUM(profit), 0.0) FROM transactions WHERE profit < 0")
     fun getTotalLoss(): Flow<Double>
+    
+    /**
+     * 获取月度统计数据
+     */
+    @Query("""
+        SELECT 
+            CAST(strftime('%Y', datetime(createdAt/1000, 'unixepoch')) AS INTEGER) as year,
+            CAST(strftime('%m', datetime(createdAt/1000, 'unixepoch')) AS INTEGER) as month,
+            SUM(profit) as profit,
+            COUNT(CASE WHEN profit > 0 THEN 1 END) as winCount,
+            COUNT(CASE WHEN profit < 0 THEN 1 END) as lossCount,
+            COUNT(*) as transactionCount
+        FROM transactions 
+        GROUP BY year, month 
+        ORDER BY year ASC, month ASC
+    """)
+    fun getMonthlyStats(): Flow<List<MonthlyStat>>
 }

@@ -34,6 +34,10 @@ class InvestViewModel(
     val transactions: StateFlow<List<Transaction>> = transactionDao.getAllTransactions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     
+    // 月度统计
+    val monthlyStats: StateFlow<List<com.investledger.data.MonthlyStat>> = transactionDao.getMonthlyStats()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
     // 统计快照（新的优化方案）
     val statistics: StateFlow<StatisticsSnapshot> = statisticsService.statistics
     
