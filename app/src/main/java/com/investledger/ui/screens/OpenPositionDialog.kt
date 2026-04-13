@@ -41,34 +41,34 @@ fun OpenPositionDialog(
     var type by remember { mutableStateOf("股票") }
     var note by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
-    
+
     // 自动补全相关状态
     var nameSuggestions by remember { mutableStateOf<List<NameTypePair>>(emptyList()) }
     var showSuggestions by remember { mutableStateOf(false) }
     var searchJob by remember { mutableStateOf<Job?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
-    
+
     // 加仓确认状态
     var showMergeDialog by remember { mutableStateOf(false) }
     var existingPositionForMerge by remember { mutableStateOf<Position?>(null) }
-    
+
     // 输入模式：0=成本价+数量, 1=金额+数量
     var inputMode by remember { mutableStateOf(0) }
-    
+
     // 模式1：成本价和数量
     var costPrice by remember { mutableStateOf("") }
     var quantityMode1 by remember { mutableStateOf("") }
-    
+
     // 模式2：金额和数量
     var totalAmount by remember { mutableStateOf("") }
     var quantityMode2 by remember { mutableStateOf("") }
-    
+
     // 日期时间
     var createdAt by remember { mutableStateOf(System.currentTimeMillis()) }
-    
+
     val types = listOf("股票", "基金", "加密货币", "债券", "其他")
-    
+
     // 计算实时总额显示
     val displayTotal = when (inputMode) {
         0 -> {
@@ -81,7 +81,7 @@ fun OpenPositionDialog(
         }
         else -> 0.0
     }
-    
+
     // 计算实际成本价（用于保存）
     val finalCostPrice = when (inputMode) {
         0 -> costPrice.toDoubleOrNull() ?: 0.0
@@ -92,14 +92,14 @@ fun OpenPositionDialog(
         }
         else -> 0.0
     }
-    
+
     // 计算实际数量
     val finalQuantity = when (inputMode) {
         0 -> quantityMode1.toDoubleOrNull() ?: 0.0
         1 -> quantityMode2.toDoubleOrNull() ?: 0.0
         else -> 0.0
     }
-    
+
     // 更新建议列表（带防抖和协程取消）
     fun updateSuggestions(query: String) {
         searchJob?.cancel()  // 取消上一次的查询
@@ -109,7 +109,7 @@ fun OpenPositionDialog(
             showSuggestions = nameSuggestions.isNotEmpty()
         }
     }
-    
+
     // 选择建议项
     fun selectSuggestion(suggestion: NameTypePair) {
         name = suggestion.name
@@ -117,7 +117,7 @@ fun OpenPositionDialog(
         showSuggestions = false
         focusManager.clearFocus()  // 收起键盘
     }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { 
@@ -129,6 +129,7 @@ fun OpenPositionDialog(
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
+<<<<<<< Updated upstream
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // 名称输入（带自动补全）
@@ -168,7 +169,7 @@ fun OpenPositionDialog(
                                 null
                             }
                         )
-                        
+
                         // 下拉建议列表
                         if (showSuggestions && nameSuggestions.isNotEmpty()) {
                             Card(
@@ -234,7 +235,7 @@ fun OpenPositionDialog(
                     onTimestampChange = { createdAt = it },
                     label = "购买日期"
                 )
-                
+
                 // 输入模式选择
                 SingleChoiceSegmentedButtonRow(
                     modifier = Modifier.fillMaxWidth()
@@ -254,14 +255,14 @@ fun OpenPositionDialog(
                         Text("金额+数量")
                     }
                 }
-                
+
                 // 根据模式显示不同的输入
                 when (inputMode) {
                     0 -> {
                         // 模式1：成本价 + 数量
                         OutlinedTextField(
                             value = costPrice,
-                            onValueChange = { 
+                            onValueChange = {
                                 if (it.isEmpty() || it.matches(Regex("\\d*\\.?\\d*"))) {
                                     costPrice = it
                                 }
@@ -275,10 +276,10 @@ fun OpenPositionDialog(
                                 unfocusedBorderColor = GrayBorder
                             )
                         )
-                        
+
                         OutlinedTextField(
                             value = quantityMode1,
-                            onValueChange = { 
+                            onValueChange = {
                                 if (it.isEmpty() || it.matches(Regex("\\d*\\.?\\d*"))) {
                                     quantityMode1 = it
                                 }
@@ -297,7 +298,7 @@ fun OpenPositionDialog(
                         // 模式2：金额 + 数量
                         OutlinedTextField(
                             value = totalAmount,
-                            onValueChange = { 
+                            onValueChange = {
                                 if (it.isEmpty() || it.matches(Regex("\\d*\\.?\\d*"))) {
                                     totalAmount = it
                                 }
@@ -311,10 +312,10 @@ fun OpenPositionDialog(
                                 unfocusedBorderColor = GrayBorder
                             )
                         )
-                        
+
                         OutlinedTextField(
                             value = quantityMode2,
-                            onValueChange = { 
+                            onValueChange = {
                                 if (it.isEmpty() || it.matches(Regex("\\d*\\.?\\d*"))) {
                                     quantityMode2 = it
                                 }
@@ -328,7 +329,7 @@ fun OpenPositionDialog(
                                 unfocusedBorderColor = GrayBorder
                             )
                         )
-                        
+
                         // 显示自动计算的成本价
                         if (finalCostPrice > 0) {
                             Card(
@@ -361,7 +362,7 @@ fun OpenPositionDialog(
                         }
                     }
                 }
-                
+
                 // 实时显示总金额
                 if (displayTotal > 0) {
                     Card(

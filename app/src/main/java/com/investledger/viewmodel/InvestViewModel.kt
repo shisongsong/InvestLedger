@@ -342,17 +342,12 @@ class InvestViewModel(
             val result = csvService.importData(uri)
             if (result.isSuccess) {
                 val importResult = result.getOrNull()!!
-                // 清空现有数据（可选：也可以不删除，直接追加）
-                // 这里采用追加模式
-                
-                importResult.positions.forEach { pos ->
-                    positionDao.insertPosition(pos.copy(id = 0)) // Reset ID for new insert
+                for (pos in importResult.positions) {
+                    positionDao.insertPosition(pos.copy(id = 0))
                 }
-                importResult.transactions.forEach { tx ->
+                for (tx in importResult.transactions) {
                     transactionDao.insertTransaction(tx.copy(id = 0))
                 }
-                
-                // 重新计算统计
                 statisticsService.recalculateAll()
                 emit(Result.success(Unit))
             } else {

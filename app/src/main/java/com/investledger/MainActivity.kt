@@ -137,10 +137,9 @@ fun InvestLedgerApp(viewModel: InvestViewModel) {
     // 建仓对话框
     if (showOpenDialog) {
         OpenPositionDialog(
-            viewModel = viewModel,
             onDismiss = { showOpenDialog = false },
-            onConfirm = { name, type, costPrice, quantity, note, createdAt, mergeWithExisting ->
-                viewModel.openPosition(name, type, costPrice, quantity, note, createdAt, mergeWithExisting)
+            onConfirm = { name, type, costPrice, quantity, note ->
+                viewModel.openPosition(name, type, costPrice, quantity, note)
                 showOpenDialog = false
             }
         )
