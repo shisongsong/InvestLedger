@@ -129,7 +129,6 @@ fun OpenPositionDialog(
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-<<<<<<< Updated upstream
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // 名称输入（带自动补全）
